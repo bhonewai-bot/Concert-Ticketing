@@ -1,23 +1,23 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from "typeorm";
 
-@Entity("reservation")
+@Entity("reservations")
 export class Reservation {
-  @PrimaryColumn()
+  @PrimaryColumn({ type: "text" })
   id!: string;
 
-  @Column({ name: "concert_id" })
+  @Column({ name: "concert_id", type: "text" })
   concertId!: string;
 
-  @Column({ name: "ticket_id" })
+  @Column({ name: "ticket_id", type: "text" })
   ticketId!: string;
 
-  @Column({ name: "user_id" })
+  @Column({ name: "user_id", type: "text" })
   userId!: string;
 
-  @Column()
+  @Column({ type: "text" })
   status!: "PENDING" | "COMPLETED" | "EXPIRED";
 
-  @Column({ name: "expires_at" })
+  @Column({ name: "expires_at", type: "datetime" })
   expiresAt!: Date;
 
   @CreateDateColumn({ name: "created_at" })

@@ -2,22 +2,22 @@ import { Entity, PrimaryColumn, Column, CreateDateColumn } from "typeorm";
 
 @Entity("concerts")
 export class Concert {
-  @PrimaryColumn()
+  @PrimaryColumn({ type: "text" })
   id!: string;
 
-  @Column()
+  @Column({ type: "text" })
   title!: string;
 
-  @Column()
+  @Column({ type: "text" })
   venue!: string;
 
-  @Column({ name: "starts_at" })
+  @Column({ name: "starts_at", type: "datetime" })
   startsAt!: Date;
 
-  @Column({ name: "total_stock" })
+  @Column({ name: "total_stock", type: "integer" })
   totalStock!: number;
 
-  @Column({ name: "available_stock" })
+  @Column({ name: "available_stock", type: "integer" })
   availableStock!: number;
 
   @CreateDateColumn({ name: "created_at" })

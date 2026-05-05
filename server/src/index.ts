@@ -2,10 +2,25 @@ import "reflect-metadata";
 import express, { Request, Response, NextFunction } from "express";
 import { HttpError } from "./errors";
 import { initialzeDataSource } from "./config/data-source";
+import { getConcert, listConcerts } from "./controllers/ConcertController";
+import {
+  cleanup,
+  purchase,
+  reserve,
+} from "./controllers/ReservationController";
 
+// INITIALIZE EXPRESS
 const app = express();
-app.use(express.Router());
+app.use(express.json());
 
+// ROUTES
+app.get("/concerts", listConcerts);
+app.get("/concerts/:id", getConcert);
+app.post("/reserve", reserve);
+app.post("/purchase", purchase);
+app.post("/cleanup", cleanup);
+
+// GLOBAL ERROR HANDLER
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
     return res.status(err.status).json({
@@ -18,6 +33,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+// START SERVER
 const PORT = Number(process.env.PORT) || 3000;
 
 initialzeDataSource().then(() => {
