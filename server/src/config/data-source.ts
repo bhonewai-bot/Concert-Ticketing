@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import path from "node:path";
-import { DataSource, QueryRunner } from "typeorm";
+import { DataSource } from "typeorm";
 import { Concert } from "../entities/Concert";
 import { Ticket } from "../entities/Ticket";
 import { Reservation } from "../entities/Reservation";
@@ -30,14 +30,29 @@ export async function initialzeDataSource(): Promise<void> {
   }
 }
 
-// CREATE QUERY RUNNER WITH BEGIN IMMEDIATE
-// TypeORM's internal flag is set so .save() won't try to open a nested transaction.
-export async function createImmediateQueryRunner(
-  dataSource: DataSource = AppDataSource,
-): Promise<QueryRunner> {
-  const queryRunner = dataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.query("BEGIN IMMEDIATE");
-  (queryRunner as any).isTransactionActive = true;
-  return queryRunner;
-}
+// -----------------------------------------------------------------------------
+// NOTE: createImmediateQueryRunner is intentionally kept here as dead code.
+//
+// It issues BEGIN IMMEDIATE instead of TypeORM's default BEGIN DEFERRED,
+// which acquires the SQLite write lock at transaction start — the correct fix
+// for the double-selling race condition under concurrent load.
+//
+// We are not using it currently because the assignment requires startTransaction().
+// If this project moves to production or high concurrency is needed on SQLite,
+// swap back to this function in ReservationService.
+//
+// Note: this is SQLite-specific. On PostgreSQL, startTransaction() is sufficient
+// because PostgreSQL uses MVCC and does not have SQLite's deferred locking issue.
+// -----------------------------------------------------------------------------
+
+// import { QueryRunner } from "typeorm";
+//
+// export async function createImmediateQueryRunner(
+//   dataSource: DataSource = AppDataSource,
+// ): Promise<QueryRunner> {
+//   const queryRunner = dataSource.createQueryRunner();
+//   await queryRunner.connect();
+//   await queryRunner.query("BEGIN IMMEDIATE");
+//   (queryRunner as any).isTransactionActive = true;
+//   return queryRunner;
+// }

@@ -1,8 +1,5 @@
 import { DataSource } from "typeorm";
-import {
-  AppDataSource,
-  createImmediateQueryRunner,
-} from "../config/data-source";
+import { AppDataSource } from "../config/data-source";
 import { Concert } from "../entities/Concert";
 import { Ticket } from "../entities/Ticket";
 import { Reservation } from "../entities/Reservation";
@@ -25,7 +22,9 @@ export class ReservationService {
     simulateFailure?: boolean;
   }) {
     // INITIALIZE TRANSACTION
-    const queryRunner = await createImmediateQueryRunner(this.datasource);
+    const queryRunner = this.datasource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
       // INITIALIZE REPOSITORIES
@@ -50,7 +49,9 @@ export class ReservationService {
       concert.availableStock -= 1;
       await concertRepo.save(concert);
 
-      // SIMULATE FAILURE FOR ROLLBACK TESTING
+      // SIMULATE FAILURE FOR ROLLBACK PROOF
+      // Throws after stock is decremented but before reservation is saved.
+      // The catch block rolls back — proving stock is restored atomically.
       if (input.simulateFailure)
         throw new Error("Simulated failure - stock must roll back");
 
@@ -72,8 +73,7 @@ export class ReservationService {
       await ticketRepo.save(ticket);
 
       // COMMIT TRANSACTION
-      await queryRunner.query("COMMIT");
-      (queryRunner as any).isTransactionActive = false;
+      await queryRunner.commitTransaction();
 
       // RETURN RESULT
       return {
@@ -82,11 +82,8 @@ export class ReservationService {
         expiresAt: reservation.expiresAt,
       };
     } catch (error) {
-      try {
-        // ROLLBACK ON FAILURE
-        await queryRunner.query("ROLLBACK");
-      } catch (_) {}
-      (queryRunner as any).isTransactionActive = false;
+      // ROLLBACK ON FAILURE
+      await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
@@ -95,7 +92,9 @@ export class ReservationService {
 
   async purchase(reservationId: string) {
     // INITIALIZE TRANSACTION
-    const queryRunner = await createImmediateQueryRunner(this.datasource);
+    const queryRunner = this.datasource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
       // INITIALIZE REPOSITORIES
@@ -118,6 +117,7 @@ export class ReservationService {
       reservation.status = "COMPLETED";
       await reservationRepo.save(reservation);
 
+      // MARK TICKET AS SOLD
       const ticket = await ticketRepo.findOneBy({ id: reservation.ticketId });
       if (ticket) {
         ticket.status = "SOLD";
@@ -125,17 +125,13 @@ export class ReservationService {
       }
 
       // COMMIT TRANSACTION
-      await queryRunner.query("COMMIT");
-      (queryRunner as any).isTransactionActive = false;
+      await queryRunner.commitTransaction();
 
       // RETURN RESULT
       return { reservationId, status: "COMPLETED" };
     } catch (error) {
-      try {
-        // ROLLBACK ON FAILURE
-        await queryRunner.query("ROLLBACK");
-      } catch (_) {}
-      (queryRunner as any).isTransactionActive = false;
+      // ROLLBACK ON FAILURE
+      await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
@@ -156,7 +152,9 @@ export class ReservationService {
     if (expired.length === 0) return { expired: 0, released: 0 };
 
     // INITIALIZE TRANSACTION
-    const queryRunner = await createImmediateQueryRunner(this.datasource);
+    const queryRunner = this.datasource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
       // INITIALIZE REPOSITORIES
@@ -197,17 +195,13 @@ export class ReservationService {
       }
 
       // COMMIT TRANSACTION
-      await queryRunner.query("COMMIT");
-      (queryRunner as any).isTransactionActive = false;
+      await queryRunner.commitTransaction();
 
       // RETURN RESULT
       return { expired: expired.length, released };
     } catch (error) {
-      try {
-        // ROLLBACK ON FAILURE
-        await queryRunner.query("ROLLBACK");
-      } catch (_) {}
-      (queryRunner as any).isTransactionActive = false;
+      // ROLLBACK ON FAILURE
+      await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
