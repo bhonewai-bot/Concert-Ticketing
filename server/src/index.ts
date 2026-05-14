@@ -1,7 +1,9 @@
 import "reflect-metadata";
-import express, { Request, Response, NextFunction } from "express";
-import { HttpError } from "./errors";
+import express from "express";
 import { initialzeDataSource } from "./config/data-source";
+import { logger } from "./lib/logger";
+import { correlationIdMiddleware } from "./middleware/correlationId";
+import { globalErrorHandler } from "./middleware/errorHandler";
 import { getConcert, listConcerts } from "./controllers/ConcertController";
 import {
   cleanup,
@@ -13,6 +15,9 @@ import {
 const app = express();
 app.use(express.json());
 
+// CORRELATION ID — must be first so every subsequent log carries the ID
+app.use(correlationIdMiddleware);
+
 // ROUTES
 app.get("/concerts", listConcerts);
 app.get("/concerts/:id", getConcert);
@@ -20,24 +25,13 @@ app.post("/reserve", reserve);
 app.post("/purchase", purchase);
 app.post("/cleanup", cleanup);
 
-// GLOBAL ERROR HANDLER
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details },
-    });
-  }
-  console.error(err);
-  return res.status(500).json({
-    error: { code: "internal_error", message: "Internal server error" },
-  });
-});
+// GLOBAL ERROR HANDLER — must be last
+app.use(globalErrorHandler);
 
 // START SERVER
 const PORT = Number(process.env.PORT) || 3000;
 
 initialzeDataSource().then(() => {
-  app.listen(PORT, () =>
-    console.log(`Server running on http://localhost:${PORT}`),
-  );
+  logger.info(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT);
 });

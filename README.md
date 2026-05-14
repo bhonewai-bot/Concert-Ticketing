@@ -20,6 +20,7 @@ Concert Ticketing/
 See [`server/README.md`](./server/README.md) for full API documentation, setup instructions, and technical decisions.
 
 **Quick start:**
+
 ```bash
 cd server
 pnpm install
