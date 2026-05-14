@@ -5,17 +5,27 @@ import { badRequest } from "../errors";
 
 const service = new ReservationService();
 
-// VALIDATION SCHEMAS
-const ReserveSchema = z.object({
-  concertId: z.string().min(1),
-  userId: z.string().min(1),
-  category: z.enum(["VIP", "General"]).default("General"),
-  simulateFailure: z.boolean().optional(),
-});
+// ─── Validation Schemas ───────────────────────────────────────────────────────
 
-const PurchaseSchema = z.object({
-  reservationId: z.string().min(1),
-});
+/**
+ * .strict() rejects any unknown properties sent in the request body.
+ */
+const ReserveSchema = z
+  .object({
+    concertId: z.string().min(1),
+    userId: z.string().min(1),
+    category: z.enum(["VIP", "General"]).default("General"),
+    simulateFailure: z.boolean().optional(),
+  })
+  .strict();
+
+const PurchaseSchema = z
+  .object({
+    reservationId: z.string().min(1),
+  })
+  .strict();
+
+// ─── Handlers ─────────────────────────────────────────────────────────────────
 
 export async function reserve(req: Request, res: Response, next: NextFunction) {
   try {
