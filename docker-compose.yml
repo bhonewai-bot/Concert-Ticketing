@@ -1,0 +1,35 @@
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: ticketing-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      SQLITE_PATH: /app/storage/ticketing.sqlite
+      LOG_LEVEL: info
+    volumes:
+      # Persist SQLite database across container restarts
+      - sqlite_data:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: ticketing-redis
+    restart: unless-stopped
+    # No ports exposed — only accessible inside Docker network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sqlite_data:
