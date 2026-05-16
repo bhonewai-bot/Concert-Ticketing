@@ -21,6 +21,15 @@ export function conflict(message: string): HttpError {
   return new HttpError(409, "conflict", message);
 }
 
+/**
+ * Used by optimistic locking — when two requests hit the same ticket version
+ * simultaneously, the loser gets this 409 with a distinct code so clients
+ * can retry cleanly.
+ */
+export function lockConflict(message: string): HttpError {
+  return new HttpError(409, "lock_conflict", message);
+}
+
 export function internalError(message: string): HttpError {
   return new HttpError(500, "internal_error", message);
 }

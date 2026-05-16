@@ -6,6 +6,7 @@ import { Ticket } from "../entities/Ticket";
 import { Reservation } from "../entities/Reservation";
 import { CreateSchema1700000000000 } from "../migrations/1700000000000-CreateSchema";
 import { AddTicketCategory1700000001000 } from "../migrations/1700000001000-AddTicketCategory";
+import { AddTicketVersion1700000002000 } from "../migrations/1700000002000-AddTicketVersion";
 
 // RESOLVE DATABASE FILE PATH
 const dbPath = path.resolve(
@@ -19,7 +20,11 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: false,
   entities: [Concert, Ticket, Reservation],
-  migrations: [CreateSchema1700000000000, AddTicketCategory1700000001000],
+  migrations: [
+    CreateSchema1700000000000,
+    AddTicketCategory1700000001000,
+    AddTicketVersion1700000002000,
+  ],
 });
 
 // CONNECT AND RUN PENDING MIGRATIONS

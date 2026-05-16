@@ -1,4 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryColumn,
+  VersionColumn,
+} from "typeorm";
 
 @Entity("tickets")
 export class Ticket {
@@ -19,4 +25,14 @@ export class Ticket {
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
+
+  /**
+   * Optimistic locking — TypeORM increments this on every save.
+   * If two requests read version=1 and both try to save, the second
+   * throws OptimisticLockVersionMismatchError → caught as 409 Conflict.
+   *
+   * Also intentionally excluded from TicketDTO (Part 2 serialization layer).
+   */
+  @VersionColumn({ type: "integer" })
+  version!: number;
 }

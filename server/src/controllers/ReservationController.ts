@@ -7,15 +7,21 @@ const service = new ReservationService();
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
-/**
- * .strict() rejects any unknown properties sent in the request body.
- */
 const ReserveSchema = z
   .object({
     concertId: z.string().min(1),
     userId: z.string().min(1),
     category: z.enum(["VIP", "General"]).default("General"),
     simulateFailure: z.boolean().optional(),
+  })
+  .strict();
+
+// Shared schema for optimistic and pessimistic — no simulateFailure needed
+const ReserveLockSchema = z
+  .object({
+    concertId: z.string().min(1),
+    userId: z.string().min(1),
+    category: z.enum(["VIP", "General"]).default("General"),
   })
   .strict();
 
@@ -29,13 +35,56 @@ const PurchaseSchema = z
 
 export async function reserve(req: Request, res: Response, next: NextFunction) {
   try {
-    // VALIDATE REQUEST BODY
     const parsed = ReserveSchema.safeParse(req.body);
+    if (!parsed.success)
+      throw badRequest("Invalid input", parsed.error.flatten());
+
+    res.status(201).json({ data: await service.reserve(parsed.data) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /reserve/optimistic
+ * Uses @VersionColumn — second concurrent request gets 409 lock_conflict.
+ */
+export async function reserveOptimistic(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const parsed = ReserveLockSchema.safeParse(req.body);
     if (!parsed.success)
       throw badRequest("Invalid input", parsed.error.message);
 
-    // RETURN RESULT
-    res.status(201).json({ data: await service.reserve(parsed.data) });
+    res
+      .status(201)
+      .json({ data: await service.reserveOptimistic(parsed.data) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /reserve/pessimistic
+ * Uses BEGIN IMMEDIATE on SQLite — second concurrent request queues and sees
+ * updated state. On PostgreSQL this will use pessimistic_write row lock.
+ */
+export async function reservePessimistic(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const parsed = ReserveLockSchema.safeParse(req.body);
+    if (!parsed.success)
+      throw badRequest("Invalid input", parsed.error.message);
+
+    res
+      .status(201)
+      .json({ data: await service.reservePessimistic(parsed.data) });
   } catch (error) {
     next(error);
   }
@@ -47,12 +96,10 @@ export async function purchase(
   next: NextFunction,
 ) {
   try {
-    // VALIDATE REQUEST BODY
     const parsed = PurchaseSchema.safeParse(req.body);
     if (!parsed.success)
       throw badRequest("Invalid input", parsed.error.message);
 
-    // RETURN RESULT
     res
       .status(201)
       .json({ data: await service.purchase(parsed.data.reservationId) });
@@ -67,7 +114,6 @@ export async function cleanup(
   next: NextFunction,
 ) {
   try {
-    // RUN CLEANUP AND RETURN RESULT
     res.json({ data: await service.cleanup() });
   } catch (error) {
     next(error);

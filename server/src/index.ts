@@ -10,6 +10,8 @@ import {
   cleanup,
   purchase,
   reserve,
+  reserveOptimistic,
+  reservePessimistic,
 } from "./controllers/ReservationController";
 import { listTickets, createTickets } from "./controllers/TicketController";
 
@@ -29,6 +31,9 @@ app.post("/tickets", createTickets);
 
 // Rate limited: 5 requests per minute per IP
 app.post("/reserve", reserveRateLimiter, reserve);
+app.post("/reserve/optimistic", reserveRateLimiter, reserveOptimistic);
+app.post("/reserve/pessimistic", reserveRateLimiter, reservePessimistic);
+
 app.post("/purchase", purchase);
 app.post("/cleanup", cleanup);
 
