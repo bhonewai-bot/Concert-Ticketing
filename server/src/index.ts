@@ -26,22 +26,29 @@ app.use(express.json());
 app.use(correlationIdMiddleware);
 
 // ─── Swagger UI ───────────────────────────────────────────────────────────────
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-app.get("/concerts", listConcerts);
-app.get("/concerts/:id", getConcert);
+// ─── API v1 Routes ───────────────────────────────────────────────────────────────────
+const v1 = express.Router();
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
-app.get("/tickets", listTickets);
-app.post("/tickets", createTickets);
+v1.get("/concerts", listConcerts);
+v1.get("/concerts/:id", getConcert);
+
+v1.get("/tickets", listTickets);
+v1.post("/tickets", createTickets);
 
 // Rate limited: 5 requests per minute per IP
-app.post("/reserve", reserveRateLimiter, reserve);
-app.post("/reserve/optimistic", reserveRateLimiter, reserveOptimistic);
-app.post("/reserve/pessimistic", reserveRateLimiter, reservePessimistic);
+v1.post("/reserve", reserveRateLimiter, reserve);
+v1.post("/reserve/optimistic", reserveRateLimiter, reserveOptimistic);
+v1.post("/reserve/pessimistic", reserveRateLimiter, reservePessimistic);
 
-app.post("/purchase", purchase);
-app.post("/cleanup", cleanup);
+v1.post("/purchase", purchase);
+v1.post("/cleanup", cleanup);
+
+app.use("/api/v1", v1);
 
 // GLOBAL ERROR HANDLER — must be last
 app.use(globalErrorHandler);

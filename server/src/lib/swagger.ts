@@ -1,4 +1,12 @@
 import swaggerJsdoc from "swagger-jsdoc";
+import path from "node:path";
+
+// In production (Docker), controllers are compiled JS in dist/.
+// In development, they are TS files in src/.
+const controllersPath =
+  process.env.NODE_ENV === "production"
+    ? path.join(__dirname, "../controllers/*.js")
+    : path.join(__dirname, "../controllers/*.ts");
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -8,6 +16,12 @@ const options: swaggerJsdoc.Options = {
       version: "1.0.0",
       description: "",
     },
+    servers: [
+      {
+        url: "/api/v1",
+        description: "API v1",
+      },
+    ],
     components: {
       schemas: {
         // ── Request Bodies ──────────────────────────────────────────────────
@@ -134,8 +148,7 @@ const options: swaggerJsdoc.Options = {
       },
     },
   },
-  // JSDoc comment sources
-  apis: ["./src/controllers/*.ts"],
+  apis: [controllersPath],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
